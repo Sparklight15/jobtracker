@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+
+Route::get('/', fn () => redirect()->route('beranda'));
+Route::view('/beranda', 'beranda')->name('beranda');
+Route::view('/masuk', 'masuk')->name('masuk');
