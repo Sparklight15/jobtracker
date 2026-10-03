@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-offwhite font-sans text-sm text-obsidian antialiased;
+  }
+
+  h1 {
+    @apply font-display text-h1 italic;
+  }
+
+  h2 {
+    @apply font-display text-h2 italic;
+  }
+}
