@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Enums\ApplyTargetPeriod;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -21,6 +23,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'job_search_started_at',
+        'apply_target',
+        'apply_target_period',
     ];
 
     /**
@@ -39,7 +44,14 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
+        'job_search_started_at' => 'date',
+        'apply_target' => 'integer',
+        'apply_target_period' => ApplyTargetPeriod::class,
         'password' => 'hashed',
     ];
+
+    public function jobs(): HasMany
+{
+    return $this->hasMany(Job::class);
+}
 }
