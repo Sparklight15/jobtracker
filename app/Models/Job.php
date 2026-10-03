@@ -12,9 +12,11 @@ use App\Enums\WorkMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Job extends Model
 {
+    use HasFactory;
     // user_id sengaja tidak ada di sini: diisi lewat $user->jobs()->create(...)
     protected $fillable = [
         'company_name',
