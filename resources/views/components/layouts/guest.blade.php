@@ -11,8 +11,6 @@
 <body class="min-h-screen">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="w-full max-w-auth">
-            <p class="mb-6 text-center font-display text-h1 italic">{{ config('app.name') }}</p>
-
             <x-card>
                 {{ $slot }}
             </x-card>
