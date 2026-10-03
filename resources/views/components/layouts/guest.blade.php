@@ -13,9 +13,9 @@
         <div class="w-full max-w-auth">
             <p class="mb-6 text-center font-display text-h1 italic">{{ config('app.name') }}</p>
 
-            <div class="rounded-card border border-nude bg-ivory p-6 shadow-card">
+            <x-card>
                 {{ $slot }}
-            </div>
+            </x-card>
         </div>
     </div>
 </body>

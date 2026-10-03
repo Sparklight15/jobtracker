@@ -17,3 +17,4 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => redirect()->route('beranda'));
 Route::view('/beranda', 'beranda')->name('beranda');
 Route::view('/masuk', 'masuk')->name('masuk');
+Route::view('/komponen', 'komponen')->name('komponen');
