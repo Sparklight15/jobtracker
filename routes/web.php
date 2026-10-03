@@ -2,19 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
-
-
 Route::get('/', fn () => redirect()->route('beranda'));
-Route::view('/beranda', 'beranda')->name('beranda');
-Route::view('/masuk', 'masuk')->name('masuk');
-Route::view('/komponen', 'komponen')->name('komponen');
+
+Route::middleware('auth')->group(function () {
+    Route::view('/beranda', 'beranda')->name('beranda');
+});
+
+// Uji visual komponen, hanya untuk development
+if (app()->environment('local')) {
+    Route::view('/komponen', 'komponen')->name('komponen');
+}
+
+require __DIR__.'/auth.php';

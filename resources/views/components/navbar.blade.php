@@ -22,7 +22,10 @@
                 </a>
             @endforeach
             {{-- Dihubungkan ke logout saat step autentikasi --}}
-            <a href="#" class="font-semibold text-obsidian/70 underline-offset-4 hover:text-obsidian hover:underline">Keluar</a>
+            <form method="POST" action="{{ route('logout') }}">
+    @csrf
+    <button type="submit" class="ISI_DENGAN_CLASS_LINK_NAVBAR_LAINNYA">Keluar</button>
+</form>
         </nav>
 
         {{-- Tombol hamburger (layar < 640px) --}}
@@ -51,6 +54,9 @@
                 {{ $link['label'] }}
             </a>
         @endforeach
-        <a href="#" class="block rounded-field px-2 py-3 font-semibold text-obsidian/70 hover:bg-ivory">Keluar</a>
+        <form method="POST" action="{{ route('logout') }}">
+    @csrf
+    <button type="submit" class="ISI_DENGAN_CLASS_LINK_NAVBAR_LAINNYA">Keluar</button>
+</form>
     </nav>
 </header>
