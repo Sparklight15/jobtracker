@@ -125,6 +125,25 @@ class JobController extends Controller
             ->with('success', "Status diubah menjadi {$status->label()}.");
     }
 
+    public function destroy(Request $request, Job $job): RedirectResponse
+    {
+        // Bukan pemilik: JobPolicy menghasilkan 404
+        $this->authorize('delete', $job);
+
+        $position = $job->position;
+        $company = $job->company_name;
+
+        // Riwayat status ikut terhapus lewat cascadeOnDelete di migrasi
+        $job->delete();
+
+        // Balik ke List Loker dengan filter dan halaman terakhir (kalau ada)
+        $listUrl = $request->session()->pull('jobs.list_url', route('jobs.index'));
+
+        return redirect()
+            ->to($listUrl)
+            ->with('success', "Loker {$position} di {$company} dihapus.");
+    }
+
     /**
      * Tombol kembali: kalau pengguna datang dari List Loker, filter, sorting, dan
      * halaman terakhirnya dibawa pulang. Alamat list disimpan di session supaya tetap

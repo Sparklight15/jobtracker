@@ -21,7 +21,11 @@ Route::middleware('auth')->group(function () {
         ->whereNumber('job')
         ->name('jobs.status');
 
-    // Route edit, hapus, statistik, dan seterusnya ditambahkan di sini
+    Route::delete('/jobs/{job}', [JobController::class, 'destroy'])
+        ->whereNumber('job')
+        ->name('jobs.destroy');
+
+    // Route edit, statistik, dan seterusnya ditambahkan di sini
 });
 
 // Uji visual komponen, hanya untuk development

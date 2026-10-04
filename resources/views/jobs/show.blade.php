@@ -50,11 +50,44 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2" x-data="{ confirmDelete: false }">
                 @if (Route::has('jobs.edit'))
                     <x-button variant="outline" :href="route('jobs.edit', $job)">Edit</x-button>
                 @endif
-                {{-- 5.6: tombol Hapus + dialog konfirmasi --}}
+
+                <button type="button" @click="confirmDelete = true"
+                        class="inline-flex h-btn items-center justify-center rounded-field border border-error px-4 text-sm font-semibold text-error transition hover:bg-ivory focus:outline-none focus-visible:ring-1 focus-visible:ring-error">
+                    Hapus
+                </button>
+
+                {{-- Dialog konfirmasi hapus --}}
+                <div x-show="confirmDelete" x-cloak
+                     x-effect="if (confirmDelete) $nextTick(() => $refs.batal.focus())"
+                     @keydown.escape.window="confirmDelete = false"
+                     @click.self="confirmDelete = false"
+                     class="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/50 px-4">
+                    <div role="dialog" aria-modal="true" aria-labelledby="judul-hapus" aria-describedby="isi-hapus"
+                         class="w-full max-w-md rounded-card border border-nude bg-offwhite p-6 shadow-card">
+                        <h2 id="judul-hapus">Hapus loker ini?</h2>
+                        <p id="isi-hapus" class="mt-2 break-words text-obsidian/70">
+                            {{ $job->position }} di {{ $job->company_name }} beserta seluruh riwayat statusnya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
+                        </p>
+
+                        <form method="POST" action="{{ route('jobs.destroy', $job) }}"
+                              class="mt-6 flex flex-wrap justify-end gap-2">
+                            @csrf
+                            @method('DELETE')
+                            <button type="button" x-ref="batal" @click="confirmDelete = false"
+                                    class="inline-flex h-btn items-center justify-center rounded-field border border-nude px-4 text-sm font-semibold transition hover:bg-ivory focus:outline-none focus-visible:ring-1 focus-visible:ring-obsidian">
+                                Batal
+                            </button>
+                            <button type="submit"
+                                    class="inline-flex h-btn items-center justify-center rounded-field bg-error px-4 text-sm font-semibold text-offwhite transition hover:opacity-90 focus:outline-none focus-visible:ring-1 focus-visible:ring-error focus-visible:ring-offset-2 focus-visible:ring-offset-offwhite">
+                                Ya, hapus
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
