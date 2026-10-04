@@ -1,8 +1,17 @@
 @php
+    // Route tambah loker belum dibuat: pakai '#' dulu, otomatis aktif saat route-nya ada
     $links = [
         ['label' => 'Beranda', 'href' => route('beranda'), 'active' => request()->routeIs('beranda')],
-        ['label' => 'Loker', 'href' => '#', 'active' => false],
-        ['label' => 'Tambah Loker', 'href' => '#', 'active' => false],
+        [
+            'label' => 'Loker',
+            'href' => route('jobs.index'),
+            'active' => request()->routeIs('jobs.*') && ! request()->routeIs('jobs.create'),
+        ],
+        [
+            'label' => 'Tambah Loker',
+            'href' => Route::has('jobs.create') ? route('jobs.create') : '#',
+            'active' => request()->routeIs('jobs.create'),
+        ],
     ];
 @endphp
 
@@ -21,11 +30,14 @@
                     {{ $link['label'] }}
                 </a>
             @endforeach
-            {{-- Dihubungkan ke logout saat step autentikasi --}}
+
             <form method="POST" action="{{ route('logout') }}">
-    @csrf
-    <button type="submit" class="ISI_DENGAN_CLASS_LINK_NAVBAR_LAINNYA">Keluar</button>
-</form>
+                @csrf
+                <button type="submit"
+                        class="font-semibold text-obsidian/70 underline-offset-4 hover:text-obsidian hover:underline">
+                    Keluar
+                </button>
+            </form>
         </nav>
 
         {{-- Tombol hamburger (layar < 640px) --}}
@@ -54,9 +66,13 @@
                 {{ $link['label'] }}
             </a>
         @endforeach
+
         <form method="POST" action="{{ route('logout') }}">
-    @csrf
-    <button type="submit" class="ISI_DENGAN_CLASS_LINK_NAVBAR_LAINNYA">Keluar</button>
-</form>
+            @csrf
+            <button type="submit"
+                    class="block w-full rounded-field px-2 py-3 text-left font-semibold text-obsidian/70 hover:bg-ivory">
+                Keluar
+            </button>
+        </form>
     </nav>
 </header>

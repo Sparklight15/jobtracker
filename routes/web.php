@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\JobController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('beranda'));
@@ -8,7 +9,19 @@ Route::get('/', fn () => redirect()->route('beranda'));
 Route::middleware('auth')->group(function () {
     Route::view('/beranda', 'beranda')->name('beranda');
 
-    // Route loker, tambah loker, statistik, dan seterusnya ditambahkan di sini
+    // Loker
+    Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
+
+    // PENTING: nanti /jobs/create harus didaftarkan SEBELUM route /jobs/{job}
+    Route::get('/jobs/{job}', [JobController::class, 'show'])
+        ->whereNumber('job')
+        ->name('jobs.show');
+
+    Route::patch('/jobs/{job}/status', [JobController::class, 'updateStatus'])
+        ->whereNumber('job')
+        ->name('jobs.status');
+
+    // Route edit, hapus, statistik, dan seterusnya ditambahkan di sini
 });
 
 // Uji visual komponen, hanya untuk development

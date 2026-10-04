@@ -26,4 +26,16 @@ enum JobStatus: string
             self::Ghosted => 'Ghosted',
         };
     }
+
+    /**
+ * Status yang masih berjalan: lama tahap terakhir dihitung sampai hari ini.
+ * Offer, Rejected, dan Ghosted dianggap final.
+ */
+public function isOngoing(): bool
+{
+    return match ($this) {
+        self::Applied, self::Screening, self::Interview => true,
+        self::Offer, self::Rejected, self::Ghosted => false,
+    };
+}
 }

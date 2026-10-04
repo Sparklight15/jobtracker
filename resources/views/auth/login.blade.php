@@ -13,7 +13,7 @@
         action="{{ route('login') }}"
         class="mt-6 space-y-4"
         x-data="{
-            left: {{ (int) session('throttle_seconds', 0) }},
+            left: {{ max(0, (int) session('throttle_until', 0) - now()->timestamp) }},
             init() {
                 const timer = setInterval(() => {
                     if (this.left > 0) this.left--;
@@ -86,5 +86,15 @@
         </p>
 
         <x-button type="submit" full x-bind:disabled="left > 0">Masuk</x-button>
+
+        @if (Route::has('register'))
+            <p class="text-center text-sm text-obsidian/70">
+                Belum punya akun?
+                <a href="{{ route('register') }}"
+                   class="text-obsidian underline underline-offset-4 hover:no-underline focus:outline-none focus-visible:no-underline">
+                    Daftar
+                </a>
+            </p>
+        @endif
     </form>
 </x-layouts.guest>
