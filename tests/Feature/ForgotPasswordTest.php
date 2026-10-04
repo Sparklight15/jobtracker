@@ -77,4 +77,53 @@ class ForgotPasswordTest extends TestCase
         $this->post('/forgot-password', ['email' => 'orang6@jobtracker.test'])
             ->assertStatus(429);
     }
+
+    public function test_dibatasi_lima_permintaan_per_jam_per_email(): void
+    {
+        Notification::fake();
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->post('/forgot-password', ['email' => 'korban@jobtracker.test'])
+                ->assertSessionHasNoErrors();
+        }
+
+        // Lewat batas per IP (1 menit), tapi batas per email masih berlaku
+        $this->travel(2)->minutes();
+
+        $this->post('/forgot-password', ['email' => 'korban@jobtracker.test'])
+            ->assertStatus(429);
+
+        // Email lain dari IP yang sama tidak terkena
+        $this->post('/forgot-password', ['email' => 'lain@jobtracker.test'])
+            ->assertSessionHasNoErrors();
+
+        // Setelah 1 jam, bisa lagi
+        $this->travel(61)->minutes();
+
+        $this->post('/forgot-password', ['email' => 'korban@jobtracker.test'])
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_halaman_429_berbahasa_indonesia(): void
+    {
+        Notification::fake();
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->post('/forgot-password', ['email' => "orang{$i}@jobtracker.test"]);
+        }
+
+        $this->post('/forgot-password', ['email' => 'orang6@jobtracker.test'])
+            ->assertStatus(429)
+            ->assertSee('Terlalu banyak permintaan');
+    }
+
+    public function test_simpan_kata_sandi_dibatasi_sepuluh_per_menit(): void
+    {
+        for ($i = 1; $i <= 10; $i++) {
+            $this->post('/reset-password', ['token' => 'x', 'email' => 'a@b.test']);
+        }
+
+        $this->post('/reset-password', ['token' => 'x', 'email' => 'a@b.test'])
+            ->assertStatus(429);
+    }
 }
