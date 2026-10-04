@@ -124,7 +124,7 @@ return [
     */
 
     'markdown' => [
-        'theme' => 'default',
+        'theme' => 'jobtracker',
 
         'paths' => [
             resource_path('views/vendor/mail'),
