@@ -1,9 +1,9 @@
 <x-layouts.guest title="Lupa Kata Sandi">
-    @if (session('status'))
-        {{-- Tampilan setelah tautan berhasil dikirim --}}
+    @if (session('reset_link_sent'))
+        {{-- Tampilan setelah permintaan dikirim (sama untuk email terdaftar atau tidak) --}}
         <h1 class="text-center font-display text-h1 italic">Cek email kamu</h1>
         <p class="mt-2 text-center text-sm text-obsidian/70">
-            {{ session('status') }} Buka email itu lalu klik tautannya untuk mengatur ulang kata sandi.
+            Jika email itu terdaftar, kami sudah mengirim tautan untuk mengatur ulang kata sandi. Buka email tersebut lalu klik tautannya.
         </p>
         <p class="mt-4 text-center text-sm text-obsidian/70">
             Tidak menemukan emailnya? Periksa folder spam, atau tunggu sekitar 1 menit lalu coba kirim ulang.
