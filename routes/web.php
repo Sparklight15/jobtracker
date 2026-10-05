@@ -12,7 +12,10 @@ Route::middleware('auth')->group(function () {
     // Loker
     Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
 
-    // PENTING: nanti /jobs/create harus didaftarkan SEBELUM route /jobs/{job}
+    // PENTING: /jobs/create harus didaftarkan SEBELUM route /jobs/{job}
+    Route::get('/jobs/create', [JobController::class, 'create'])->name('jobs.create');
+    Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
+
     Route::get('/jobs/{job}', [JobController::class, 'show'])
         ->whereNumber('job')
         ->name('jobs.show');
@@ -25,7 +28,15 @@ Route::middleware('auth')->group(function () {
         ->whereNumber('job')
         ->name('jobs.destroy');
 
-    // Route edit, statistik, dan seterusnya ditambahkan di sini
+    Route::get('/jobs/{job}/edit', [JobController::class, 'edit'])
+        ->whereNumber('job')
+        ->name('jobs.edit');
+
+    Route::put('/jobs/{job}', [JobController::class, 'update'])
+        ->whereNumber('job')
+        ->name('jobs.update');
+
+    // Route statistik dan seterusnya ditambahkan di sini
 });
 
 // Uji visual komponen, hanya untuk development

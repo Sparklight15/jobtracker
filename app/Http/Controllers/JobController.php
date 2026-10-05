@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\JobStatus;
+use App\Http\Requests\StoreJobRequest;
+use App\Http\Requests\UpdateJobRequest;
 use App\Http\Requests\UpdateJobStatusRequest;
 use App\Models\Job;
+use App\Support\JobCreator;
 use App\Support\JobFilter;
 use App\Support\JobStatusChanger;
+use App\Support\JobUpdater;
 use App\Support\StatusTimeline;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -95,6 +99,49 @@ class JobController extends Controller
         ]);
     }
 
+    public function create(): View
+    {
+        return view('jobs.create');
+    }
+
+    public function store(StoreJobRequest $request): RedirectResponse
+    {
+        // Validasi sudah dikerjakan StoreJobRequest. user_id diambil dari pengguna yang login.
+        $job = JobCreator::create($request->user(), $request->validated());
+
+        return redirect()
+            ->route('jobs.show', $job)
+            ->with('success', "Loker {$job->position} di {$job->company_name} ditambahkan.");
+    }
+
+    public function edit(Job $job): View
+    {
+        // Bukan pemilik: JobPolicy menghasilkan 404
+        $this->authorize('update', $job);
+
+        $job->load(['skillGaps' => fn ($q) => $q->orderBy('skill_name')]);
+
+        return view('jobs.edit', ['job' => $job]);
+    }
+
+    public function update(UpdateJobRequest $request, Job $job): RedirectResponse
+    {
+        // Otorisasi (404 untuk bukan pemilik) dan validasi sudah dikerjakan UpdateJobRequest
+        $before = $job->current_status;
+
+        $updated = JobUpdater::update($job, $request->validated());
+
+        $message = "Loker {$updated->position} di {$updated->company_name} diperbarui.";
+
+        if ($updated->current_status !== $before) {
+            $message .= " Status diubah menjadi {$updated->current_status->label()}.";
+        }
+
+        return redirect()
+            ->route('jobs.show', $job)
+            ->with('success', $message);
+    }
+
     public function show(Request $request, Job $job): View
     {
         // Bukan pemilik: JobPolicy menghasilkan 404
@@ -164,8 +211,13 @@ class JobController extends Controller
             return $previous;
         }
 
-        // Datang dari halaman detail ini sendiri (setelah ubah status)
-        if ($sameHost && $path === parse_url(route('jobs.show', $job), PHP_URL_PATH)) {
+        // Datang dari halaman detail ini sendiri (setelah ubah status) atau dari form edit-nya
+        $ownPaths = [
+            parse_url(route('jobs.show', $job), PHP_URL_PATH),
+            parse_url(route('jobs.edit', $job), PHP_URL_PATH),
+        ];
+
+        if ($sameHost && in_array($path, $ownPaths, true)) {
             return $request->session()->get('jobs.list_url', $fallback);
         }
 
