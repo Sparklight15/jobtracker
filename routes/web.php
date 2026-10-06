@@ -1,13 +1,19 @@
 <?php
 
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('beranda'));
 
 // Semua halaman aplikasi: wajib login
 Route::middleware('auth')->group(function () {
-    Route::view('/beranda', 'beranda')->name('beranda');
+    // Beranda dan statistik
+    Route::get('/beranda', [StatsController::class, 'index'])->name('beranda');
+
+    Route::get('/stats/{group}', [StatsController::class, 'show'])
+        ->where('group', '[A-Ia-i]')
+        ->name('stats.show');
 
     // Loker
     Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
@@ -35,8 +41,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/jobs/{job}', [JobController::class, 'update'])
         ->whereNumber('job')
         ->name('jobs.update');
-
-    // Route statistik dan seterusnya ditambahkan di sini
 });
 
 // Uji visual komponen, hanya untuk development
