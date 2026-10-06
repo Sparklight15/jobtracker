@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/stats/{group}', [StatsController::class, 'show'])
         ->where('group', '[A-Ia-i]')
         ->name('stats.show');
+
+    // Profil Pengguna (Fase 9)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Kirim link reset kata sandi ke email akun yang sedang login
+    Route::post('/profile/password-reset-link', [ProfileController::class, 'sendPasswordResetLink'])
+        ->middleware('throttle:3,1')
+        ->name('profile.password-reset-link');
 
     // Loker
     Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
