@@ -1,4 +1,6 @@
 <x-layouts.app title="Edit Loker">
+    <h1 class="sr-only">Edit Loker</h1>
+
     <div class="space-y-6">
         <a href="{{ route('jobs.show', $job) }}"
            class="inline-flex items-center gap-1 font-semibold text-obsidian/70 underline-offset-4 hover:text-obsidian hover:underline focus:outline-none focus-visible:underline">
@@ -6,8 +8,7 @@
         </a>
 
         <div>
-            <h1>Edit Loker</h1>
-            <p class="mt-1 break-words text-obsidian/70">{{ $job->position }} di {{ $job->company_name }}</p>
+            <p class="break-words text-obsidian/70">{{ $job->position }} di {{ $job->company_name }}</p>
             <p class="mt-1 text-obsidian/70">Kolom bertanda <span class="text-error" aria-hidden="true">*</span><span class="sr-only">bintang</span> wajib diisi.</p>
         </div>
 

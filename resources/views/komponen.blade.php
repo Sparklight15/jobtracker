@@ -1,5 +1,5 @@
 <x-layouts.app title="Komponen">
-    <h1>Komponen</h1>
+    <h1 class="sr-only">Komponen</h1>
 
     <h2 class="mt-8">Tombol</h2>
     <div class="mt-4 flex flex-wrap gap-3">

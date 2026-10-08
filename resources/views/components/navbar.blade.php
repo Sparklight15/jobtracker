@@ -12,6 +12,7 @@
             'href' => Route::has('jobs.create') ? route('jobs.create') : '#',
             'active' => request()->routeIs('jobs.create'),
         ],
+        ['label' => 'Profil', 'href' => route('profile.edit'), 'active' => request()->routeIs('profile.*')],
     ];
 @endphp
 

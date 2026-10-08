@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== BASE ===== */
 @layer base {
   body {
     @apply bg-offwhite font-sans text-sm text-obsidian antialiased;
@@ -15,45 +16,80 @@
     @apply font-display text-h2 italic;
   }
 
+  /* Cegah Alpine menampilkan elemen sebelum diinisialisasi */
   [x-cloak] {
-  display: none !important;
+    display: none !important;
   }
 
-  @layer components {
+  /* Anchor Beranda: gulir halus, kecuali pengguna minta gerak dikurangi */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Indikator fokus seragam untuk keyboard (tautan, tombol, input).
+     Komponen yang punya ring sendiri tetap menang karena utility lebih spesifik. */
+  :focus-visible {
+    outline: 2px solid theme('colors.obsidian');
+    outline-offset: 2px;
+  }
+
+  /* iOS Safari memperbesar halaman otomatis kalau font input < 16px.
+     16px di HP, kembali 14px (text-sm) mulai layar sm. */
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    @apply text-base sm:text-sm;
+  }
+}
+
+/* ===== COMPONENTS ===== (sebelumnya salah ter-nest di dalam @layer base) */
+@layer components {
   .checkbox {
-  appearance: none;
-  -webkit-appearance: none;
-  accent-color: #101010;
-  flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
-  cursor: pointer;
-  border: 1px solid theme('colors.nude');
-  border-radius: 4px;
-  background-color: theme('colors.offwhite');
-}
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    border: 1px solid theme('colors.nude');
+    border-radius: 4px;
+    background-color: theme('colors.offwhite');
+  }
 
-.checkbox:hover {
-  border-color: theme('colors.obsidian');
-}
+  .checkbox:hover {
+    border-color: theme('colors.obsidian');
+  }
 
-.checkbox:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px theme('colors.offwhite'), 0 0 0 3px theme('colors.obsidian');
-}
+  .checkbox:focus-visible {
+    outline: 1px solid transparent; /* tetap terlihat di mode kontras tinggi Windows */
+    box-shadow: 0 0 0 2px theme('colors.offwhite'), 0 0 0 3px theme('colors.obsidian');
+  }
 
-.checkbox:checked {
-  background-color: theme('colors.obsidian');
-  border-color: theme('colors.obsidian');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='%23FDFCF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
+  .checkbox:checked {
+    background-color: theme('colors.obsidian');
+    border-color: theme('colors.obsidian');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='%23FDFCF8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
 
-.checkbox:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-}
+  .checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  /* OPSIONAL: pembungkus konten halaman. Pakai di <main class="page-container">
+     di layout, hanya kalau padding dan lebar maksimal memang belum ada di tempat lain. */
+  .page-container {
+    @apply mx-auto w-full max-w-page px-4 py-6 sm:px-6 lg:px-8;
+  }
+
+  /* OPSIONAL: judul section kecil untuk lembar formulir (halaman Detail),
+     supaya tidak memakai h2 serif 24px yang bersaing dengan isi data. */
+  .section-title {
+    @apply font-sans text-base font-semibold not-italic leading-snug;
+  }
 }

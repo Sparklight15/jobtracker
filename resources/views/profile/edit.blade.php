@@ -1,12 +1,7 @@
 <x-layouts.app title="Profil">
-    <div class="mx-auto max-w-2xl space-y-8">
-        <div>
-            <h1>Profil</h1>
-            <p class="mt-1 text-sm text-obsidian/70">
-                Kelola data akun, target lamaran, dan keamanan akunmu.
-            </p>
-        </div>
+    <h1 class="sr-only">Profil</h1>
 
+    <div class="mx-auto max-w-2xl space-y-8">
         {{-- Info akun dan target lamaran: satu form, karena ProfileUpdateRequest memvalidasi semuanya sekaligus --}}
         <section aria-labelledby="judul-akun">
             <x-card>

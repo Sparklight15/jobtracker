@@ -83,7 +83,7 @@ class GroupA implements StatGroup
                     [['name' => 'Pernah mencapai', 'data' => array_values($reached)]],
                 )),
 
-                // #3 conversion antar tahap
+                // #3 conversion antar tahap (digambar sebagai setengah lingkaran radial)
                 'stage_conversion' => Stat::guard($total, $minPercentage, function () use ($funnel, $reached) {
                     $labels = [];
                     $data = [];
@@ -98,7 +98,12 @@ class GroupA implements StatGroup
                             : null;
                     }
 
-                    return Stat::chart('hbar', $labels, [['name' => 'Conversion', 'data' => $data]], ['unit' => '%']);
+                    return Stat::chart(
+                        'halfradial',
+                        $labels,
+                        [['name' => 'Conversion', 'data' => $data]],
+                        ['unit' => '%', 'max' => 100],
+                    );
                 }),
 
                 // Pelengkap #2: sebaran status saat ini (termasuk Rejected dan Ghosted)

@@ -11,6 +11,8 @@
     $variants = [
         'primary' => "bg-obsidian text-offwhite hover:opacity-90 $ring",
         'outline' => "border border-obsidian text-obsidian hover:bg-ivory $ring",
+        'danger' => "bg-error text-offwhite hover:opacity-90 $ring",
+        'danger-outline' => "border border-error text-error hover:bg-error/5 $ring",
         'text' => 'text-obsidian/70 underline-offset-4 hover:text-obsidian focus:outline-none focus-visible:underline',
     ];
 

@@ -10,7 +10,7 @@ use Closure;
  */
 final class Stat
 {
-    public const CHART_TYPES = ['bar', 'hbar', 'line', 'doughnut', 'scatter'];
+    public const CHART_TYPES = ['bar', 'hbar', 'line', 'doughnut', 'scatter', 'halfradial', 'calendar'];
 
     /** Kartu dengan data cukup. $extra: unit, target, delta, hint, dst. */
     public static function value(int|float|string|null $value, array $extra = []): array
@@ -31,6 +31,7 @@ final class Stat
     /**
      * Grafik. $series = [['name' => 'Jumlah', 'data' => [..]], ...]
      * Untuk scatter: labels = [], data = [['x' => 1, 'y' => 2], ...]
+     * Untuk halfradial: satu seri, data = persentase per irisan; extra boleh memuat unit dan max.
      */
     public static function chart(string $type, array $labels, array $series, array $extra = []): array
     {

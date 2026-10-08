@@ -26,8 +26,8 @@
             title="Conversion antar tahap"
             visual="hbars"
             about="Persentase lamaran yang lanjut dari satu tahap ke tahap berikutnya."
-            how="Makin panjang batangnya, makin besar peluang lolos. 50% berarti 5 dari 10 lamaran lanjut."
-            insight="Batang terpendek adalah titik terlemahmu. Perbaiki bagian itu dulu." />
+            how="Tiap irisan adalah satu perpindahan tahap. Makin jauh irisan menjulur keluar, makin besar peluang lolos. 50% berarti 5 dari 10 lamaran lanjut."
+            insight="Irisan yang paling pendek adalah titik terlemahmu. Perbaiki bagian itu dulu." />
     </div>
 
     <div class="relative md:col-span-2 xl:col-span-1">

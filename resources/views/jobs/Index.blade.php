@@ -28,13 +28,11 @@
         $btnLink = 'font-semibold text-obsidian/70 underline-offset-4 hover:text-obsidian hover:underline focus:outline-none focus-visible:underline disabled:cursor-not-allowed disabled:opacity-30 disabled:no-underline';
     @endphp
 
+    <h1 class="sr-only">Loker</h1>
+
     <div class="space-y-6">
-        {{-- Judul halaman + Tambah Loker --}}
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <h1>Loker</h1>
-                <p class="mt-1 text-obsidian/70">Semua lamaran kerja yang sudah kamu catat.</p>
-            </div>
+        {{-- Tambah Loker --}}
+        <div class="flex justify-end">
             <a href="{{ $createUrl }}" class="{{ $btnPrimary }}">Tambah Loker</a>
         </div>
 
