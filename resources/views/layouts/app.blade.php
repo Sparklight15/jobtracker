@@ -7,30 +7,49 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
+        <!-- Fonts: pakai link font yang sama dengan yang kamu pakai di layout lain -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+        <div class="min-h-screen bg-offwhite"
+             x-data="{
+                 micro: window.innerWidth < 1024
+                     ? true
+                     : (localStorage.getItem('sidebarMicro') === 'true'),
+
+                 // 'terbuka' = kebalikan micro (dipakai lapisan gelap di HP/iPad)
+                 get terbuka() { return ! this.micro },
+                 set terbuka(nilai) { this.micro = ! nilai },
+
+                 toggle() {
+                     this.micro = ! this.micro;
+                     if (window.innerWidth >= 1024) {
+                         try { localStorage.setItem('sidebarMicro', this.micro) } catch (e) {}
+                     }
+                 },
+             }">
+
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
+            {{-- Konten bergeser mengikuti lebar sidebar (di HP/iPad selalu seukuran rail) --}}
+            <div class="pl-[4.5rem] transition-[padding] duration-200 ease-out motion-reduce:transition-none"
+                 :class="micro ? 'lg:pl-[4.5rem]' : 'lg:pl-64'">
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+                @if (isset($header))
+                    <header class="border-b border-nude bg-white">
+                        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                            {{ $header }}
+                        </div>
+                    </header>
+                @endif
+
+                <main>
+                    {{ $slot }}
+                </main>
+            </div>
         </div>
     </body>
 </html>
