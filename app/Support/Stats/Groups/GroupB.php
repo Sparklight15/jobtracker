@@ -25,6 +25,9 @@ class GroupB implements StatGroup
 
     private const MONTHLY_MAX = 12;
 
+    /** Jumlah titik maksimal sparkline kartu. */
+    private const SPARK_POINTS = 20;
+
     /** Tahap yang punya lama durasi. Offer, Rejected, dan Ghosted adalah akhir. */
     private const TRACKED_STAGES = [JobStatus::Applied, JobStatus::Screening, JobStatus::Interview];
 
@@ -38,7 +41,7 @@ class GroupB implements StatGroup
 
         return [
             'cards' => [
-                'first_response_days' => $this->firstResponse($jobs, $minAverage),
+                'first_response_days' => $this->firstResponse($context, $jobs, $minAverage),
                 'search_duration' => $this->searchDuration($context),
             ],
             'charts' => [
@@ -53,20 +56,67 @@ class GroupB implements StatGroup
      * #6 Waktu ke respons pertama: applied_date sampai first_response_date,
      * hanya untuk loker yang sudah direspons.
      */
-    private function firstResponse(Collection $jobs, int $min): array
+    private function firstResponse(StatsContext $context, Collection $jobs, int $min): array
     {
-        $days = $jobs
-            ->filter(fn (Job $job) => $job->first_response_date !== null)
+        $responded = $jobs->filter(fn (Job $job) => $job->first_response_date !== null)->values();
+
+        $days = $responded
             ->map(fn (Job $job) => $this->daysBetween($job->applied_date, $job->first_response_date))
             ->values();
 
         return Stat::guard($days->count(), $min, fn () => Stat::value(
             round($days->avg(), 1),
-            [
+            array_filter([
                 'unit' => 'hari',
                 'note' => 'Median '.$this->number($days->median()).' hari · dari '.$days->count().' loker yang direspons',
-            ],
+                'spark' => $this->firstResponseSpark($context, $jobs, $responded),
+            ], fn ($v) => $v !== null),
         ));
+    }
+
+    /**
+     * Sparkline #6: rata-rata hari ke respons per "ember" waktu (berdasarkan applied_date).
+     * Ember tanpa loker yang direspons dilewati. Kurang dari 2 titik = null.
+     */
+    private function firstResponseSpark(StatsContext $context, Collection $jobs, Collection $responded): ?array
+    {
+        $start = $context->period->startDate($context->today);
+
+        if ($start === null) {
+            $first = $jobs->pluck('applied_date')->filter()->min();
+
+            if (! $first) {
+                return null;
+            }
+
+            $start = CarbonImmutable::instance($first)->startOfDay();
+        }
+
+        $layout = $this->bucketLayout($start, $context->today);
+
+        if ($layout === null) {
+            return null;
+        }
+
+        [$step, $count] = $layout;
+        $sums = array_fill(0, $count, 0);
+        $counts = array_fill(0, $count, 0);
+
+        foreach ($responded as $job) {
+            $index = $this->bucketOf($start, $job->applied_date, $step, $count);
+            $sums[$index] += $this->daysBetween($job->applied_date, $job->first_response_date);
+            $counts[$index]++;
+        }
+
+        $series = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            if ($counts[$i] > 0) {
+                $series[] = round($sums[$i] / $counts[$i], 1);
+            }
+        }
+
+        return count($series) >= 2 ? $series : null;
     }
 
     /**
@@ -149,10 +199,41 @@ class GroupB implements StatGroup
 
         $start = min($candidates);
 
-        return Stat::value($this->daysBetween($start, $context->today) + 1, [
+        return Stat::value($this->daysBetween($start, $context->today) + 1, array_filter([
             'unit' => 'hari',
             'note' => 'Sejak '.$start->locale('id')->translatedFormat('j F Y'),
-        ]);
+            'spark' => $this->searchSpark($context, $start),
+        ], fn ($v) => $v !== null));
+    }
+
+    /**
+     * Sparkline #8: jumlah apply per "ember" waktu sejak awal pencarian
+     * (semua loker, tidak terpengaruh filter periode). Kurang dari 2 titik = null.
+     */
+    private function searchSpark(StatsContext $context, CarbonImmutable $start): ?array
+    {
+        $layout = $this->bucketLayout($start, $context->today);
+
+        if ($layout === null) {
+            return null;
+        }
+
+        [$step, $count] = $layout;
+        $series = array_fill(0, $count, 0);
+
+        $dates = Job::query()
+            ->where('user_id', $context->user->id)
+            ->pluck('applied_date');
+
+        foreach ($dates as $date) {
+            if (! $date) {
+                continue;
+            }
+
+            $series[$this->bucketOf($start, $date, $step, $count)]++;
+        }
+
+        return $series;
     }
 
     /** #9 Tren apply per minggu (minggu mulai Senin). Minggu pertama bisa parsial. */
@@ -206,6 +287,30 @@ class GroupB implements StatGroup
     {
         return $context->period->startDate($context->today)
             ?? CarbonImmutable::instance($context->jobs()->pluck('applied_date')->min())->startOfDay();
+    }
+
+    /**
+     * Ukuran "ember" sparkline: minimal 7 hari per titik, dilebarkan supaya
+     * maksimal SPARK_POINTS titik. Null kalau titiknya kurang dari 2.
+     *
+     * @return array{0: int, 1: int}|null [hari per ember, jumlah ember]
+     */
+    private function bucketLayout(CarbonImmutable $start, CarbonImmutable $today): ?array
+    {
+        $days = (int) floor(abs($start->diffInDays($today->startOfDay())));
+        $step = max(7, (int) ceil(($days + 1) / self::SPARK_POINTS));
+        $count = intdiv($days, $step) + 1;
+
+        return $count >= 2 ? [$step, $count] : null;
+    }
+
+    /** Nomor ember (0..count-1) untuk sebuah tanggal. */
+    private function bucketOf(CarbonImmutable $start, DateTimeInterface $date, int $step, int $count): int
+    {
+        $day = CarbonImmutable::instance($date)->startOfDay();
+        $index = (int) floor(abs($start->diffInDays($day)) / $step);
+
+        return min($index, $count - 1);
     }
 
     private function daysBetween(DateTimeInterface $from, DateTimeInterface $to): int

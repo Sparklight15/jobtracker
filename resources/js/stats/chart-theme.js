@@ -12,6 +12,14 @@ const MUTED = 'rgba(16, 16, 16, 0.7)';
 const BAR_FILL_START = 0.22; // opasitas di pangkal batang
 const BAR_FILL_END = 0.88;   // opasitas di ujung batang
 
+// Gradasi area di bawah grafik garis: pekat di dekat garis -> memudar ke bawah
+const AREA_FILL_TOP = 0.2;
+const AREA_FILL_BOTTOM = 0.02;
+
+// Grafik garis (Apply per minggu/bulan, dll.)
+const LINE_WIDTH = 1;   // px, bisa pecahan: 0.75 = sangat tipis, 1.25 = agak tegas
+const LINE_POINT = 2;   // radius titik
+
 Chart.defaults.font.family = '"Nunito Variable", ui-sans-serif, system-ui, sans-serif';
 Chart.defaults.font.size = 12;
 Chart.defaults.color = MUTED;
@@ -50,7 +58,7 @@ export function shade(i, n) {
     return n <= 1 ? INK : mix(INK, LIGHT, i / (n - 1));
 }
 
-/** Versi array [r, g, b] dari shade(), dipakai untuk gradasi batang. */
+/** Versi array [r, g, b] dari shade(), dipakai untuk gradasi batang dan area. */
 function shadeRgb(i, n) {
     return n <= 1 ? hexToRgb(INK) : mixRgb(INK, LIGHT, i / (n - 1));
 }
@@ -99,6 +107,36 @@ function barGradient(rgb, horizontal) {
     };
 }
 
+/**
+ * Gradasi area di bawah garis (scriptable): pekat di atas, memudar ke bawah.
+ * Memakai area plot grafik (chartArea), jadi saat grafik belum siap
+ * dikembalikan 'transparent' dan Chart.js menggambar ulang setelah ukurannya ada.
+ */
+function areaGradient(rgb) {
+    return (context) => {
+        const { chart } = context;
+        const ctx = chart?.ctx;
+        const area = chart?.chartArea;
+
+        if (!ctx || !area) return 'transparent';
+
+        const { top, bottom } = area;
+
+        if (![top, bottom].every((v) => typeof v === 'number' && Number.isFinite(v)) || top === bottom) {
+            return 'transparent';
+        }
+
+        try {
+            const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+            gradient.addColorStop(0, rgba(rgb, AREA_FILL_TOP));
+            gradient.addColorStop(1, rgba(rgb, AREA_FILL_BOTTOM));
+            return gradient;
+        } catch (e) {
+            return 'transparent';
+        }
+    };
+}
+
 function withUnit(text, unit) {
     if (!unit) return text;
     if (unit === '%') return `${text}%`;
@@ -121,16 +159,27 @@ function buildDataset(type, series, index, total, labels) {
                 maxBarThickness: 40,
             };
         }
-        case 'line':
+        case 'line': {
+            const color = shade(index, total);
+            const rgb = shadeRgb(index, total);
+            // Area berisi hanya untuk grafik satu seri. Kalau seri lebih dari satu,
+            // area saling menumpuk dan sulit dibaca, jadi cukup garisnya.
+            const filled = total === 1;
+
             return {
                 ...base,
-                borderColor: shade(index, total),
-                backgroundColor: shade(index, total),
-                borderWidth: 2,
+                borderColor: color,
+                borderWidth: LINE_WIDTH,
                 tension: 0.3,
-                pointRadius: 3,
+                pointRadius: LINE_POINT,
+                pointHoverRadius: LINE_POINT + 2,
+                pointBackgroundColor: color, // titik tetap solid, tidak ikut gradasi
+                pointBorderColor: color,
                 borderDash: index > 0 ? [6, 4] : [], // garis putus-putus membedakan seri selain warna
+                fill: filled ? 'origin' : false,
+                backgroundColor: filled ? areaGradient(rgb) : color,
             };
+        }
         case 'doughnut':
             return {
                 ...base,
