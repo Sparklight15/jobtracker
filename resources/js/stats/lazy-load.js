@@ -1,4 +1,4 @@
-import { renderChart } from './chart-theme';
+import { renderChart, renderSparkline } from './chart-theme';
 
 const show = (el, on = true) => el?.classList.toggle('hidden', !on);
 
@@ -12,8 +12,10 @@ function applyCard(card, data, failed = false) {
     const [loading, value, note, empty, error] = [
         '[data-stat-loading]', '[data-stat-value]', '[data-stat-note]', '[data-stat-empty]', '[data-stat-error]',
     ].map(q);
+    const sparkWrap = q('[data-stat-spark-wrap]');
+    const sparkCanvas = q('[data-stat-spark]');
 
-    [loading, value, note, empty, error].forEach((el) => show(el, false));
+    [loading, value, note, empty, error, sparkWrap].forEach((el) => show(el, false));
 
     if (failed) return show(error);
 
@@ -48,6 +50,18 @@ function applyCard(card, data, failed = false) {
         note.textContent = data.note;
         show(note);
     }
+
+    // Sparkline opsional: hanya kalau backend mengirim data.spark (minimal 2 titik).
+    // Dibungkus try/catch sendiri supaya kegagalan sparkline tidak merusak angka kartu.
+    if (sparkWrap && sparkCanvas && Array.isArray(data.spark) && data.spark.length >= 2) {
+        try {
+            show(sparkWrap); // tampilkan dulu supaya Chart.js bisa mengukur ukurannya
+            renderSparkline(sparkCanvas, data.spark);
+        } catch (e) {
+            console.error('[stats] sparkline gagal digambar:', e);
+            show(sparkWrap, false);
+        }
+    }
 }
 
 /** Panel grafik: loading | ok | insufficient | error | belum tersedia */
@@ -81,30 +95,55 @@ function applyChart(panel, data, failed = false) {
     renderChart(canvas, data);
 }
 
+/** Jalankan satu langkah render; kalau error, hanya elemen itu yang ditandai gagal. */
+function safely(label, fn, onError) {
+    try {
+        fn();
+    } catch (e) {
+        console.error(`[stats] ${label} gagal digambar:`, e);
+        onError();
+    }
+}
+
 async function loadGroup(section) {
     const cards = section.querySelectorAll('[data-stat-card]');
     const panels = section.querySelectorAll('[data-chart-panel]');
     show(section.querySelector('[data-stats-retry]'), false);
 
+    let payload;
+
+    // Tahap 1: ambil data. Hanya kegagalan di sini yang dianggap "gagal memuat".
     try {
         const response = await fetch(section.dataset.url, {
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status} untuk ${section.dataset.url}`);
 
-        const payload = await response.json();
-
-        cards.forEach((card) => applyCard(card, payload.cards?.[card.dataset.statCard]));
-        panels.forEach((panel) => applyChart(panel, payload.charts?.[panel.dataset.chartPanel]));
-
-        const sample = section.querySelector('[data-stats-sample]');
-        if (sample) sample.textContent = `Berdasarkan ${payload.sample} loker`;
+        payload = await response.json();
     } catch (e) {
+        console.error('[stats] request gagal:', e);
         cards.forEach((card) => applyCard(card, null, true));
         panels.forEach((panel) => applyChart(panel, null, true));
         show(section.querySelector('[data-stats-retry]'));
+        return;
     }
+
+    // Tahap 2: gambar. Error satu kartu atau grafik tidak menjatuhkan yang lain.
+    cards.forEach((card) => safely(
+        `kartu ${card.dataset.statCard}`,
+        () => applyCard(card, payload.cards?.[card.dataset.statCard]),
+        () => applyCard(card, null, true),
+    ));
+
+    panels.forEach((panel) => safely(
+        `grafik ${panel.dataset.chartPanel}`,
+        () => applyChart(panel, payload.charts?.[panel.dataset.chartPanel]),
+        () => applyChart(panel, null, true),
+    ));
+
+    const sample = section.querySelector('[data-stats-sample]');
+    if (sample) sample.textContent = `Berdasarkan ${payload.sample} loker`;
 }
 
 const sections = document.querySelectorAll('[data-stats-group][data-url]');

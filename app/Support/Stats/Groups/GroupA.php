@@ -41,6 +41,9 @@ class GroupA implements StatGroup
 
         [$target, $targetNote] = $this->targetFor($context, $total);
 
+        // Data sparkline untuk tiga kartu angka (null = sparkline tidak ditampilkan)
+        $spark = $this->sparkSeries($context, $jobs);
+
         return [
             'cards' => [
                 // #1 total apply vs target
@@ -48,24 +51,27 @@ class GroupA implements StatGroup
                     'unit' => 'loker',
                     'target' => $target,
                     'note' => $targetNote,
+                    'spark' => $spark['total'],
                 ], fn ($v) => $v !== null)),
 
                 // #4 overall conversion: pernah mencapai Offer / total
                 'overall_conversion' => Stat::guard($total, $minPercentage, fn () => Stat::value(
                     $this->percent($reached[JobStatus::Offer->value], $total),
-                    [
+                    array_filter([
                         'unit' => '%',
                         'note' => "{$reached[JobStatus::Offer->value]} dari {$total} loker sampai tahap Offer",
-                    ],
+                        'spark' => $spark['conversion'],
+                    ], fn ($v) => $v !== null),
                 )),
 
                 // #5 rasio ghosting: status saat ini Ghosted / total
                 'ghosting_rate' => Stat::guard($total, $minPercentage, fn () => Stat::value(
                     $this->percent($ghosted, $total),
-                    [
+                    array_filter([
                         'unit' => '%',
                         'note' => "{$ghosted} dari {$total} loker tanpa kabar",
-                    ],
+                        'spark' => $spark['ghosting'],
+                    ], fn ($v) => $v !== null),
                 )),
             ],
 
@@ -126,6 +132,74 @@ class GroupA implements StatGroup
         }
 
         return $reached;
+    }
+
+    /**
+     * Data sparkline per kartu, dibagi ke "ember" waktu berdasarkan applied_date.
+     * 30d/90d: satu titik per minggu. Semua: dilebarkan supaya maksimal ~20 titik.
+     * Kalau titik kurang dari 2, semuanya null (sparkline tidak ditampilkan).
+     *
+     * @return array{total: ?array, conversion: ?array, ghosting: ?array}
+     */
+    private function sparkSeries(StatsContext $context, Collection $jobs): array
+    {
+        $none = ['total' => null, 'conversion' => null, 'ghosting' => null];
+        $today = $context->today->startOfDay();
+        $start = $context->period->startDate($today);
+
+        if ($start === null) {
+            $first = $jobs->pluck('applied_date')->filter()->min();
+
+            if (! $first) {
+                return $none;
+            }
+
+            $start = CarbonImmutable::instance($first)->startOfDay();
+        }
+
+        $days = (int) floor(abs($start->diffInDays($today)));
+        $step = max(7, (int) ceil(($days + 1) / 20));
+        $count = intdiv($days, $step) + 1;
+
+        if ($count < 2) {
+            return $none;
+        }
+
+        $buckets = array_fill(0, $count, []);
+
+        foreach ($jobs as $job) {
+            if (! $job->applied_date) {
+                continue;
+            }
+
+            $applied = CarbonImmutable::instance($job->applied_date)->startOfDay();
+            $index = (int) floor(abs($start->diffInDays($applied)) / $step);
+            $buckets[min($index, $count - 1)][] = $job;
+        }
+
+        $offerOrder = JobStatus::Offer->stageOrder();
+        $total = $conversion = $ghosting = [];
+
+        foreach ($buckets as $bucket) {
+            $n = count($bucket);
+            $offers = 0;
+            $ghosts = 0;
+
+            foreach ($bucket as $job) {
+                if ($this->furthestStage($job) >= $offerOrder) {
+                    $offers++;
+                }
+                if ($job->current_status === JobStatus::Ghosted) {
+                    $ghosts++;
+                }
+            }
+
+            $total[] = $n;
+            $conversion[] = $this->percent($offers, $n);
+            $ghosting[] = $this->percent($ghosts, $n);
+        }
+
+        return compact('total', 'conversion', 'ghosting');
     }
 
     /**

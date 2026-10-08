@@ -8,6 +8,10 @@ const OFFWHITE = '#FDFCF8';
 const LIGHT = '#CFC6B3'; // ujung terang rampa monokrom, masih terbaca di atas kartu ivory
 const MUTED = 'rgba(16, 16, 16, 0.7)';
 
+// Gradasi batang: dasar batang tipis -> ujung batang pekat (ganti opasitas di sini)
+const BAR_FILL_START = 0.22; // opasitas di pangkal batang
+const BAR_FILL_END = 0.88;   // opasitas di ujung batang
+
 Chart.defaults.font.family = '"Nunito Variable", ui-sans-serif, system-ui, sans-serif';
 Chart.defaults.font.size = 12;
 Chart.defaults.color = MUTED;
@@ -28,16 +32,71 @@ function hexToRgb(hex) {
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function mix(from, to, t) {
+function mixRgb(from, to, t) {
     const a = hexToRgb(from);
     const b = hexToRgb(to);
-    const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+    return a.map((v, i) => Math.round(v + (b[i] - v) * t));
+}
+
+function mix(from, to, t) {
+    const c = mixRgb(from, to, t);
     return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 }
+
+const rgba = (rgb, alpha) => `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
 
 /** Warna ke-i dari n, rampa dari obsidian ke abu hangat. */
 export function shade(i, n) {
     return n <= 1 ? INK : mix(INK, LIGHT, i / (n - 1));
+}
+
+/** Versi array [r, g, b] dari shade(), dipakai untuk gradasi batang. */
+function shadeRgb(i, n) {
+    return n <= 1 ? hexToRgb(INK) : mixRgb(INK, LIGHT, i / (n - 1));
+}
+
+/**
+ * Gradasi per batang (scriptable). Vertikal: dari dasar ke atas.
+ * Horizontal: dari kiri ke kanan. Tiap batang memakai koordinatnya sendiri,
+ * jadi batang pendek dan panjang sama-sama mendapat gradasi penuh.
+ *
+ * Saat grafik baru dibuat (atau dibaca legenda), posisi batang belum dihitung
+ * sehingga koordinatnya bisa kosong/NaN. createLinearGradient() melempar error
+ * untuk nilai seperti itu, jadi di kondisi tersebut dipakai warna solid dulu.
+ */
+function barGradient(rgb, horizontal) {
+    const fallback = rgba(rgb, BAR_FILL_END);
+
+    return (context) => {
+        const { chart, element } = context;
+        const ctx = chart?.ctx;
+
+        if (!ctx || !chart.chartArea || !element || typeof element.getProps !== 'function') {
+            return fallback;
+        }
+
+        const { x, y, base } = element.getProps(['x', 'y', 'base'], true);
+        const coords = horizontal ? [base, x] : [base, y];
+
+        if (!coords.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+            return fallback;
+        }
+
+        // Batang tanpa panjang (nilai 0): gradasi tidak perlu
+        if (coords[0] === coords[1]) return fallback;
+
+        try {
+            const gradient = horizontal
+                ? ctx.createLinearGradient(coords[0], 0, coords[1], 0)
+                : ctx.createLinearGradient(0, coords[0], 0, coords[1]);
+
+            gradient.addColorStop(0, rgba(rgb, BAR_FILL_START));
+            gradient.addColorStop(1, rgba(rgb, BAR_FILL_END));
+            return gradient;
+        } catch (e) {
+            return fallback;
+        }
+    };
 }
 
 function withUnit(text, unit) {
@@ -52,13 +111,16 @@ function buildDataset(type, series, index, total, labels) {
 
     switch (type) {
         case 'bar':
-        case 'hbar':
+        case 'hbar': {
+            const rgb = shadeRgb(index, total);
             return {
                 ...base,
-                backgroundColor: total === 1 ? INK : shade(index, total),
+                backgroundColor: barGradient(rgb, type === 'hbar'),
+                hoverBackgroundColor: rgba(rgb, 1), // batang yang di-hover jadi solid
                 borderRadius: 6,
                 maxBarThickness: 40,
             };
+        }
         case 'line':
             return {
                 ...base,
@@ -131,5 +193,46 @@ export function renderChart(canvas, payload) {
             datasets: series.map((s, i) => buildDataset(type, s, i, series.length, labels)),
         },
         options,
+    });
+}
+
+// Sparkline kartu angka: garis sangat tipis + gradasi lembut di bawahnya (ganti warna di sini)
+const SPARK_LINE = 'rgba(16, 16, 16, 0.7)';
+const SPARK_FILL_TOP = 'rgba(16, 16, 16, 0.22)';
+const SPARK_FILL_BOTTOM = 'rgba(16, 16, 16, 0.02)';
+const SPARK_LINE_WIDTH = 0.6; // px, bisa pecahan (Chart.js mendukung); 0.5 = paling tipis yang masih terbaca
+
+/** Grafik mini tanpa sumbu, legenda, atau interaksi. values = array angka berurutan waktu. */
+export function renderSparkline(canvas, values) {
+    Chart.getChart(canvas)?.destroy();
+
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: values.map((_, i) => i + 1),
+            datasets: [{
+                data: values,
+                borderColor: SPARK_LINE,
+                borderWidth: SPARK_LINE_WIDTH,
+                tension: 0.4,
+                pointRadius: 0,
+                fill: true,
+                backgroundColor: (context) => {
+                    const { ctx, chartArea } = context.chart;
+                    if (!chartArea) return 'transparent';
+                    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                    gradient.addColorStop(0, SPARK_FILL_TOP);
+                    gradient.addColorStop(1, SPARK_FILL_BOTTOM);
+                    return gradient;
+                },
+            }],
+        },
+        options: {
+            events: [],
+            animation: { duration: 600 },
+            layout: { padding: { top: 4, bottom: 2, left: 1, right: 1 } },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } },
+        },
     });
 }
