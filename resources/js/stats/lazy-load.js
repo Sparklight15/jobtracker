@@ -1,5 +1,6 @@
 import { renderChart, renderSparkline } from './chart-theme';
 import { renderActivityCalendar } from './activity-calendar';
+import { renderDonut, clearDonut } from './donut';
 
 const show = (el, on = true) => el?.classList.toggle('hidden', !on);
 
@@ -135,6 +136,7 @@ function applyChart(panel, data, failed = false) {
     [loading, canvas, empty, error, viewsBox, calendarBox].forEach((el) => show(el, false));
     viewsBox?.replaceChildren();
     calendarBox?.replaceChildren();
+    clearDonut(canvas); // bersihkan donat dari render sebelumnya (kalau ada)
     empty.classList.remove('flex');
     error.classList.remove('flex');
 
@@ -161,6 +163,9 @@ function applyChart(panel, data, failed = false) {
         show(calendarBox); // tampilkan dulu supaya posisi popup bisa diukur
         return renderActivityCalendar(calendarBox, data);
     }
+
+    // Donat membangun kanvas dan keterangannya sendiri di wadah kanvas, jadi kanvas bawaan tetap tersembunyi.
+    if (data.variant === 'donut') return renderDonut(canvas, data);
 
     show(canvas); // tampilkan dulu supaya Chart.js bisa mengukur ukurannya
 

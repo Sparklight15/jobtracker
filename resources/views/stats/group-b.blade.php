@@ -38,7 +38,7 @@
         <x-info-popover
             title="Kalender aktivitas"
             about="Aktivitas lamaranmu hari demi hari: kapan kamu apply, lolos screening, wawancara, dapat offer, ditolak, atau di-ghosting."
-            how="Satu kotak adalah satu hari, satu kolom adalah satu minggu (Senin di atas). Warna kotak menunjukkan statusnya, dari paling gelap ke paling terang: Offer, Interview, Screening, Applied, Rejected, lalu Ghosted. Cocokkan dengan legenda di bawah kalender. Kalau satu hari punya beberapa jenis aktivitas, kotaknya dibagi (maksimal tiga bagian). Arahkan kursor atau tap kotak untuk melihat detailnya."
+            how="Satu kotak adalah satu hari dan angka di dalamnya adalah tanggalnya. Satu baris adalah satu minggu (Senin di kiri, Minggu di kanan), dengan minggu terbaru di paling atas. Geser ke bawah untuk melihat hari-hari sebelumnya, sampai sekitar 5 tahun ke belakang. Warna kotak menunjukkan statusnya, dari paling gelap ke paling terang: Offer, Interview, Screening, Applied, Rejected, lalu Ghosted. Cocokkan dengan legenda di bawah kalender. Kalau satu hari punya beberapa jenis aktivitas, kotaknya dibagi (maksimal tiga bagian). Arahkan kursor atau tap kotak untuk melihat detailnya."
             insight="Hari kosong beruntun menandakan ritme apply yang putus. Kotak gelap yang muncul beberapa hari setelah deretan kotak terang menunjukkan berapa lama lamaran biasanya butuh untuk bergerak maju." />
     </div>
 

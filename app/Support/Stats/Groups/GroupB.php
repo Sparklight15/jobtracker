@@ -33,8 +33,8 @@ class GroupB implements StatGroup
     /** Jumlah titik maksimal sparkline kartu. */
     private const SPARK_POINTS = 20;
 
-    /** Jumlah minggu (kolom) kalender aktivitas. */
-    private const CALENDAR_MAX_WEEKS = 26;
+    /** Batas jumlah minggu (baris) kalender aktivitas: sekitar 5 tahun ke belakang. */
+    private const CALENDAR_MAX_WEEKS = 260;
 
     private const CALENDAR_MIN_WEEKS = 8;
 
@@ -433,25 +433,26 @@ class GroupB implements StatGroup
     }
 
     /**
-     * Kalender aktivitas: satu kotak = satu hari, kolom = minggu (mulai Senin).
+     * Kalender aktivitas: satu kotak = satu hari, baris = minggu (mulai Senin).
      * Setiap hari membawa daftar kejadian per status dari status_history
      * (plus applied_date untuk loker yang riwayat Applied-nya belum ada).
      *
      * Berbeda dengan grafik lain, kejadian diambil dari SEMUA loker milik user,
      * bukan hanya loker yang apply-nya jatuh di periode. Kalau tidak, wawancara
      * hari ini untuk loker yang di-apply 3 bulan lalu tidak akan muncul di filter 30 hari.
-     * Filter periode hanya menentukan berapa minggu yang ditampilkan.
+     * Filter periode TIDAK memengaruhi kalender: yang ditampilkan selalu dari minggu
+     * kejadian paling awal (maksimal CALENDAR_MAX_WEEKS ke belakang) sampai minggu ini,
+     * supaya bisa di-scroll sampai bertahun-tahun. Di sisi tampilan, minggu terbaru ada di atas.
      */
     private function activityCalendar(StatsContext $context): array
     {
         $today = $context->today->startOfDay();
         $lastWeek = $today->startOfWeek(CarbonInterface::MONDAY);
 
-        $first = $this->rangeStart($context)->startOfWeek(CarbonInterface::MONDAY);
-        $first = max($first, $lastWeek->subWeeks(self::CALENDAR_MAX_WEEKS - 1));
-        $first = min($first, $lastWeek->subWeeks(self::CALENDAR_MIN_WEEKS - 1));
+        // Batas paling awal yang boleh dibaca; awal sebenarnya ditentukan setelah kejadian terkumpul
+        $earliest = $lastWeek->subWeeks(self::CALENDAR_MAX_WEEKS - 1);
 
-        $from = $first->toDateString();
+        $from = $earliest->toDateString();
         $to = $today->toDateString();
 
         $jobs = Job::query()
@@ -489,8 +490,17 @@ class GroupB implements StatGroup
             }
         }
 
+        // Mulai dari minggu kejadian paling awal, tapi minimal CALENDAR_MIN_WEEKS minggu terakhir
+        $first = $lastWeek->subWeeks(self::CALENDAR_MIN_WEEKS - 1);
+
+        if ($events !== []) {
+            $firstEventWeek = CarbonImmutable::parse(min(array_keys($events)))->startOfWeek(CarbonInterface::MONDAY);
+            $first = min($first, $firstEventWeek);
+        }
+
+        $first = max($first, $earliest);
+
         $weeks = [];
-        $previousMonth = null;
 
         for ($monday = $first; $monday <= $lastWeek; $monday = $monday->addWeek()) {
             $days = [];
@@ -507,18 +517,7 @@ class GroupB implements StatGroup
                 ];
             }
 
-            $weeks[] = [
-                // Nama bulan hanya di minggu pertama bulan itu
-                'month' => $monday->month !== $previousMonth ? $monday->locale('id')->translatedFormat('M') : null,
-                'days' => $days,
-            ];
-
-            $previousMonth = $monday->month;
-        }
-
-        // Dua label bulan di kolom bersebelahan akan bertabrakan: pertahankan yang kedua
-        if (isset($weeks[1]) && $weeks[1]['month'] !== null) {
-            $weeks[0]['month'] = null;
+            $weeks[] = ['days' => $days];
         }
 
         return Stat::chart('calendar', [], [], [

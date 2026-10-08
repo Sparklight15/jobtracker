@@ -1,4 +1,5 @@
 import Chart from 'chart.js/auto';
+import { renderGlowLine } from './glow-line';
 
 // Palet proyek (lihat tailwind.config.js)
 const INK = '#101010';
@@ -787,6 +788,9 @@ export function renderChart(canvas, payload) {
     const { type, labels = [], series = [], unit = null } = payload;
 
     if (type === 'halfradial') return renderHalfRadial(canvas, payload);
+
+    // Grafik garis bergaya glow (Conversion dan Response rate per channel)
+    if (type === 'line' && payload.variant === 'glow') return renderGlowLine(canvas, payload);
 
     const isDoughnut = type === 'doughnut';
     const horizontal = type === 'hbar';

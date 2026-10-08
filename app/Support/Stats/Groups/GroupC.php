@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Grup C (#10-12): analisis per channel.
  *
+ * #11 (conversion) dan #12 (response rate) digabung jadi satu grafik garis dengan dua series.
+ *
  * Definisi (samakan dengan yang tampil di UI):
  * - Response rate = loker dengan first_response_date terisi / total loker channel itu
  *   (konsisten dengan #6 di Grup B).
@@ -39,26 +41,26 @@ class GroupC implements StatGroup
             'cards' => [],
             'charts' => [
                 'channel_distribution' => Stat::guard($total, $minBreakdown, fn () => $this->distribution($jobs)),
-                'channel_conversion' => $this->rateChart($jobs, $minRate, 'converted', 'Conversion'),
-                'channel_response_rate' => $this->rateChart($jobs, $minRate, 'responded', 'Response rate'),
+                'channel_rates' => $this->rates($jobs, $minRate),
             ],
         ];
     }
 
-    /** #10 Distribusi loker per channel, urut dari terbanyak. */
+    /** #10 Distribusi loker per channel (donat), urut dari terbanyak. */
     private function distribution(Collection $jobs): array
     {
         $rows = $this->rows($jobs);
 
         return Stat::chart(
-            'hbar',
+            'bar',
             array_column($rows, 'label'),
             [['name' => 'Jumlah loker', 'data' => array_column($rows, 'total')]],
+            ['variant' => 'donut'], // dibaca lazy-load.js untuk memakai donut.js
         );
     }
 
-    /** #11 dan #12: persentase per channel. $metric = key 'converted' atau 'responded'. */
-    private function rateChart(Collection $jobs, int $min, string $metric, string $seriesName): array
+    /** #11 dan #12: conversion dan response rate per channel dalam satu grafik garis. */
+    private function rates(Collection $jobs, int $min): array
     {
         $rows = $this->rows($jobs);
 
@@ -68,24 +70,32 @@ class GroupC implements StatGroup
             return Stat::insufficient($largest, $min);
         }
 
-        $data = array_map(
+        // Persentase per channel; null (garis terputus) kalau sampel channel itu di bawah batas.
+        $percent = fn (string $metric) => array_map(
             fn (array $row) => $row['total'] >= $min
                 ? round($row[$metric] / $row['total'] * 100, 1)
                 : null,
             $rows,
         );
 
+        // Jumlah mentah per channel, supaya tooltip bisa menulis "3 dari 12".
+        $counts = fn (string $metric) => array_map(
+            fn (array $row) => ['n' => $row[$metric], 'of' => $row['total']],
+            $rows,
+        );
+
         return Stat::chart(
-            'bar',
+            'line',
             array_column($rows, 'label'),
-            [['name' => $seriesName, 'data' => $data]],
+            [
+                ['name' => 'Conversion', 'data' => $percent('converted')],
+                ['name' => 'Response rate', 'data' => $percent('responded')],
+            ],
             [
                 'unit' => '%',
-                // Jumlah mentah per channel, supaya tooltip bisa menulis "3 dari 12".
-                'counts' => array_map(
-                    fn (array $row) => ['n' => $row[$metric], 'of' => $row['total']],
-                    $rows,
-                ),
+                'variant' => 'glow', // dibaca chart-theme.js untuk memakai gaya glow-line.js
+                // Sejajar dengan urutan series di atas.
+                'series_counts' => [$counts('converted'), $counts('responded')],
             ],
         );
     }
